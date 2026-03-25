@@ -1,0 +1,10 @@
+---
+- name: restart nginx
+  shell: |
+    if pgrep nginx >/dev/null; then
+      nginx -s reload
+    else
+      nginx
+    fi
+  args:
+    executable: /bin/bash

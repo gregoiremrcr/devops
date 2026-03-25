@@ -1,0 +1,18 @@
+services:
+  node1:
+    image: ubuntu:22.04
+    container_name: ansible-node1
+    command: sleep infinity
+    networks:
+      - ansible-net
+
+  node2:
+    image: ubuntu:22.04
+    container_name: ansible-node2
+    command: sleep infinity
+    networks:
+      - ansible-net
+
+networks:
+  ansible-net:
+    name: ansible-net

@@ -1,0 +1,4 @@
+---
+app_name: devops-app
+app_port: 3000
+app_env: production

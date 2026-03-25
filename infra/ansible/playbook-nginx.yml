@@ -1,0 +1,67 @@
+---
+- name: Installer et configurer Nginx
+  hosts: webservers
+  become: true
+  gather_facts: false
+
+  pre_tasks:
+    - name: Bootstrap Python for Ansible modules
+      raw: test -e /usr/bin/python3 || (apt-get update && apt-get install -y python3 python3-apt)
+      changed_when: false
+
+    - name: Gather facts
+      setup:
+
+  handlers:
+    - name: restart nginx
+      shell: |
+        if pgrep nginx >/dev/null; then
+          nginx -s reload
+        else
+          nginx
+        fi
+      args:
+        executable: /bin/bash
+
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: Configure the default site
+      copy:
+        content: |
+          server {
+              listen 80 default_server;
+              root /var/www/html;
+              index index.html;
+
+              location / {
+                  try_files $uri $uri/ =404;
+              }
+
+              location /health {
+                  return 200 '{"status": "ok"}';
+                  add_header Content-Type application/json;
+              }
+          }
+        dest: /etc/nginx/sites-available/default
+        mode: "0644"
+      notify: restart nginx
+
+    - name: Deploy the default page
+      copy:
+        content: |
+          <!DOCTYPE html>
+          <html>
+          <head><title>DevOps Training</title></head>
+          <body>
+            <h1>Serveur configure par Ansible</h1>
+            <p>Host: {{ ansible_hostname }}</p>
+          </body>
+          </html>
+        dest: /var/www/html/index.html
+        mode: "0644"
+      notify: restart nginx

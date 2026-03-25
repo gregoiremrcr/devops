@@ -1,0 +1,28 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base packages
+  apt:
+    name: "{{ base_packages }}"
+    state: present
+
+- name: Create application directory
+  file:
+    path: /opt/app
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Copy shared environment file
+  copy:
+    content: |
+      # Configuration de l'application
+      APP_ENV=production
+      APP_LOG_LEVEL=info
+      APP_PORT=3000
+    dest: /opt/app/.env
+    mode: "0600"

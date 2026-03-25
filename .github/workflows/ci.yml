@@ -1,0 +1,85 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tooling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify shared DevOps tooling
+        uses: ./.github/actions/setup-tools
+        with:
+          install-terraform: "false"
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+          cache-dependency-path: app/package-lock.json
+      - run: cd app && npm ci
+      - name: Run tests
+        run: |
+          cd app
+          set -o pipefail
+          npm test 2>&1 | tee test-output.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-output-node-${{ matrix.node-version }}
+          path: app/test-output.txt
+
+  build:
+    needs: [tooling, test]
+    uses: ./.github/workflows/reusable-docker.yml
+    with:
+      image-name: devops-app
+      context: ./app
+
+  security:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan application files
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: "fs"
+          scan-ref: "app/"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
+          format: "table"
+
+  deploy-staging:
+    needs: [build, security]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - run: echo "Deploying ${{ needs.build.outputs.image-tag }} to staging..."
+
+  deploy-production:
+    needs: [build, deploy-staging]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Use secrets safely
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          API_KEY: ${{ secrets.API_KEY }}
+        run: |
+          echo "Secrets are masked in logs"
+          echo "DB_PASSWORD length: ${#DB_PASSWORD}"
+      - run: echo "Deploying ${{ needs.build.outputs.image-tag }} to production..."

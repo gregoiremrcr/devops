@@ -1,0 +1,16 @@
+.DS_Store
+*.swp
+*.swo
+.env
+node_modules/
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+*.auto.tfvars
+__pycache__/
+*.pyc
+.ansible/
+*.retry
+app/test-output.txt
+infra/ansible/.ansible/

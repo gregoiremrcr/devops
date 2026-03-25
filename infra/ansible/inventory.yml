@@ -1,0 +1,11 @@
+all:
+  vars:
+    ansible_connection: docker
+    ansible_python_interpreter: /usr/bin/python3
+  children:
+    webservers:
+      hosts:
+        ansible-node1:
+    appservers:
+      hosts:
+        ansible-node2:

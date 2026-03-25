@@ -1,0 +1,28 @@
+---
+- name: Ensure application directory exists
+  file:
+    path: /opt/app
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write application runtime configuration
+  copy:
+    content: |
+      APP_NAME={{ app_name }}
+      APP_ENV={{ app_env }}
+      APP_PORT={{ app_port }}
+    dest: /opt/app/app.env
+    mode: "0644"
+
+- name: Write application metadata
+  copy:
+    content: |
+      {
+        "name": "{{ app_name }}",
+        "environment": "{{ app_env }}",
+        "port": {{ app_port }}
+      }
+    dest: /opt/app/app.json
+    mode: "0644"

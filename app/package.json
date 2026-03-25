@@ -1,0 +1,11 @@
+{
+  "name": "devops-demo-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test",
+    "test:local": "node --test --test-isolation=none"
+  }
+}

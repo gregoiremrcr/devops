@@ -1,0 +1,8 @@
+FROM ubuntu:22.04
+RUN apt-get update
+RUN apt-get install -y nodejs npm curl wget git python3
+COPY . /app
+WORKDIR /app
+RUN npm install
+EXPOSE 3000
+CMD ["node", "src/index.js"]

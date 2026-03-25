@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps Avancé — CI/CD, IaC, K8s & DevSecOps | Formation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0e1a;
+      --bg-card: #111827;
+      --bg-code: #0d1117;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-violet: #8b5cf6;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-dim: #475569;
+      --border-color: #1e293b;
+      --grid-color: #131c2e;
+      --glow-blue: 0 0 20px rgba(59, 130, 246, 0.3);
+      --glow-cyan: 0 0 20px rgba(6, 182, 212, 0.3);
+      --glow-emerald: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    /* Pipeline-inspired background */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .grid-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 900px 500px at 10% 10%, rgba(6, 182, 212, 0.08), transparent),
+        radial-gradient(ellipse 800px 400px at 90% 90%, rgba(59, 130, 246, 0.06), transparent),
+        radial-gradient(ellipse 600px 300px at 50% 50%, rgba(16, 185, 129, 0.04), transparent);
+    }
+
+    /* ── Header ── */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: rgba(10, 14, 26, 0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 100;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+
+    .logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.2em;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
+    }
+
+    .day-btn {
+      padding: 6px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.85em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .day-btn:hover { border-color: var(--accent-cyan); color: var(--text-primary); }
+    .day-btn.active {
+      background: rgba(6, 182, 212, 0.15);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .ctrl-btn {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85em;
+      transition: all 0.2s;
+    }
+    .ctrl-btn:hover { border-color: var(--accent-blue); color: var(--text-primary); }
+    .ctrl-btn.active { background: rgba(59, 130, 246, 0.15); border-color: var(--accent-blue); color: var(--accent-blue); }
+    .ctrl-btn:disabled { opacity: 0.3; cursor: default; }
+
+    .slide-counter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8em;
+      color: var(--text-dim);
+      min-width: 60px;
+      text-align: center;
+    }
+
+    /* ── Progress bar ── */
+    .progress-track {
+      position: fixed;
+      top: 56px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--border-color);
+      z-index: 99;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+      transition: width 0.3s ease;
+      width: 0;
+    }
+
+    /* ── Slides container ── */
+    .slides-wrapper {
+      position: fixed;
+      top: 58px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 48px 64px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(100%);
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s;
+      overflow-y: auto;
+    }
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+    .slide.prev {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+
+    /* ── Slide content ── */
+    .slide-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75em;
+      color: var(--accent-cyan);
+      opacity: 0.6;
+      margin-bottom: 8px;
+    }
+
+    .slide-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8em, 3.5vw, 2.8em);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-title.accent {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-subtitle {
+      font-size: 1.15em;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      max-width: 700px;
+    }
+
+    /* Hero slide */
+    .slide.hero { align-items: center; text-align: center; }
+    .slide.hero .slide-title { font-size: clamp(2.2em, 4.5vw, 3.5em); }
+    .slide.hero .slide-subtitle { max-width: 600px; }
+
+    /* Typography */
+    h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.3em;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      margin: 24px 0 12px;
+    }
+
+    p, li {
+      font-size: 1.05em;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+
+    ul, ol { padding-left: 24px; margin: 12px 0; }
+    li { margin: 6px 0; }
+    li::marker { color: var(--accent-cyan); }
+
+    strong { color: var(--text-primary); font-weight: 600; }
+    em { color: var(--accent-amber); font-style: normal; }
+
+    /* Code blocks */
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88em;
+      background: var(--bg-code);
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: var(--accent-emerald);
+    }
+
+    pre {
+      background: var(--bg-code);
+      border: 1px solid var(--border-color);
+      border-left: 3px solid var(--accent-emerald);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+      position: relative;
+    }
+    pre code { background: none; padding: 0; font-size: 0.82em; line-height: 1.7; color: var(--text-primary); }
+    pre::before {
+      content: 'CODE';
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-size: 0.65em;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Layouts */
+    .two-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    .three-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 24px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .card h4 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.05em;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .card p { font-size: 0.92em; }
+
+    .card.blue { border-left: 3px solid var(--accent-blue); }
+    .card.cyan { border-left: 3px solid var(--accent-cyan); }
+    .card.emerald { border-left: 3px solid var(--accent-emerald); }
+    .card.amber { border-left: 3px solid var(--accent-amber); }
+    .card.rose { border-left: 3px solid var(--accent-rose); }
+    .card.violet { border-left: 3px solid var(--accent-violet); }
+
+    /* Info boxes */
+    .info-box {
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin: 16px 0;
+      border: 1px solid;
+    }
+    .info-box.tip { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.2); }
+    .info-box.warning { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.2); }
+    .info-box.danger { background: rgba(244, 63, 94, 0.08); border-color: rgba(244, 63, 94, 0.2); }
+    .info-box.success { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2); }
+
+    /* Tags / pills */
+    .tag {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.78em;
+      font-weight: 600;
+      margin: 2px 4px;
+    }
+    .tag.blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+    .tag.cyan { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); }
+    .tag.emerald { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+    .tag.amber { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+    .tag.rose { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
+    .tag.violet { background: rgba(139, 92, 246, 0.15); color: var(--accent-violet); }
+
+    /* Diagrams */
+    .diagram {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .diagram .node {
+      padding: 14px 20px;
+      border-radius: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      font-size: 0.9em;
+      font-weight: 500;
+      text-align: center;
+      min-width: 100px;
+    }
+    .diagram .node.blue { border-color: var(--accent-blue); color: var(--accent-blue); }
+    .diagram .node.cyan { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+    .diagram .node.emerald { border-color: var(--accent-emerald); color: var(--accent-emerald); }
+    .diagram .node.amber { border-color: var(--accent-amber); color: var(--accent-amber); }
+    .diagram .node.rose { border-color: var(--accent-rose); color: var(--accent-rose); }
+    .diagram .node.violet { border-color: var(--accent-violet); color: var(--accent-violet); }
+    .diagram .node.active { background: rgba(6, 182, 212, 0.12); box-shadow: var(--glow-cyan); }
+
+    .diagram .arrow {
+      color: var(--text-dim);
+      font-size: 1.2em;
+    }
+
+    /* Pipeline diagram */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 24px 0;
+      justify-content: center;
+    }
+    .pipeline .stage {
+      padding: 16px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      font-size: 0.88em;
+      font-weight: 600;
+      text-align: center;
+      position: relative;
+      min-width: 120px;
+    }
+    .pipeline .stage:first-child { border-radius: 12px 0 0 12px; }
+    .pipeline .stage:last-child { border-radius: 0 12px 12px 0; }
+    .pipeline .stage .stage-label {
+      font-size: 0.72em;
+      color: var(--text-dim);
+      display: block;
+      margin-top: 4px;
+      font-weight: 400;
+    }
+    .pipeline .stage.blue { border-color: var(--accent-blue); color: var(--accent-blue); }
+    .pipeline .stage.cyan { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+    .pipeline .stage.emerald { border-color: var(--accent-emerald); color: var(--accent-emerald); }
+    .pipeline .stage.amber { border-color: var(--accent-amber); color: var(--accent-amber); }
+    .pipeline .stage.rose { border-color: var(--accent-rose); color: var(--accent-rose); }
+    .pipeline .connector {
+      width: 32px;
+      height: 2px;
+      background: var(--border-color);
+      position: relative;
+    }
+    .pipeline .connector::after {
+      content: '';
+      position: absolute;
+      right: -4px;
+      top: -4px;
+      width: 0;
+      height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 8px solid var(--text-dim);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.9em;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    th {
+      background: var(--bg-card);
+      color: var(--accent-cyan);
+      font-weight: 600;
+      font-size: 0.85em;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    td { color: var(--text-secondary); }
+    tr:hover td { color: var(--text-primary); }
+
+    /* Terminal block */
+    .terminal {
+      background: #0d1117;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82em;
+      color: var(--accent-emerald);
+      line-height: 1.8;
+    }
+    .terminal .prompt { color: var(--accent-cyan); }
+    .terminal .output { color: var(--text-dim); }
+
+    /* ── Speaker Notes panel ── */
+    .speaker-notes {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 180px;
+      background: rgba(10, 14, 26, 0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border-color);
+      padding: 16px 24px;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 90;
+      overflow-y: auto;
+    }
+    .speaker-notes.visible { transform: translateY(0); }
+    .speaker-notes h4 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75em;
+      color: var(--accent-amber);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .speaker-notes p { font-size: 0.9em; color: var(--text-secondary); }
+
+    /* ── TP Panel ── */
+    .tp-panel {
+      position: fixed;
+      top: 58px;
+      right: 0;
+      bottom: 0;
+      width: 50%;
+      max-width: 680px;
+      background: rgba(10, 14, 26, 0.97);
+      backdrop-filter: blur(16px);
+      border-left: 1px solid var(--border-color);
+      transform: translateX(100%);
+      transition: transform 0.35s ease;
+      z-index: 80;
+      display: flex;
+      flex-direction: column;
+    }
+    .tp-panel.visible { transform: translateX(0); }
+
+    .tp-panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .tp-panel-header h3 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      color: var(--accent-emerald);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 0;
+    }
+    .tp-panel-header a {
+      font-size: 0.8em;
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+
+    .tp-panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      font-size: 0.92em;
+      line-height: 1.7;
+    }
+    .tp-panel-body h3 { color: var(--accent-cyan); margin-top: 20px; }
+    .tp-panel-body h4 { color: var(--text-primary); margin: 16px 0 8px; font-size: 1em; }
+    .tp-panel-body pre { font-size: 0.85em; }
+    .tp-panel-body p, .tp-panel-body li { color: var(--text-secondary); }
+    .tp-panel-empty { color: var(--text-dim); text-align: center; padding: 40px 0; }
+
+    /* ── Slide Menu ── */
+    .slide-menu {
+      position: fixed;
+      top: 56px;
+      right: 16px;
+      width: 320px;
+      max-height: 70vh;
+      background: rgba(17, 24, 39, 0.98);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow-y: auto;
+      z-index: 110;
+      display: none;
+      padding: 8px;
+    }
+    .slide-menu.visible { display: block; }
+    .slide-menu-item {
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.82em;
+      color: var(--text-secondary);
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .slide-menu-item:hover { background: rgba(6, 182, 212, 0.08); color: var(--text-primary); }
+    .slide-menu-item.active { background: rgba(6, 182, 212, 0.12); color: var(--accent-cyan); }
+    .slide-menu-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9em;
+      color: var(--accent-cyan);
+      min-width: 40px;
+      opacity: 0.7;
+    }
+
+    /* ── Keyboard hints ── */
+    .keyboard-hints {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      gap: 12px;
+      font-size: 0.72em;
+      color: var(--text-dim);
+      z-index: 50;
+    }
+    .key {
+      display: inline-block;
+      padding: 2px 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9em;
+      margin-right: 4px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .slide { padding: 32px 24px; }
+      .two-cols { grid-template-columns: 1fr; }
+      .three-cols { grid-template-columns: 1fr; }
+      .pipeline { flex-wrap: wrap; }
+      .tp-panel { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <span class="logo">DEVOPS</span>
+    <button class="day-btn active" data-day="1">J1 — CI/CD & IaC</button>
+    <button class="day-btn" data-day="2">J2 — K8s & Monitoring</button>
+    <button class="day-btn" data-day="3">J3 — DevSecOps</button>
+  </div>
+  <div class="header-right">
+    <button class="ctrl-btn" id="tpBtn" title="Panneau TP (T)" disabled>TP</button>
+    <button class="ctrl-btn" id="assistBtn" title="Mode aide (A)" disabled>?</button>
+    <button class="ctrl-btn" id="prevBtn" title="Slide précédente">&#9664;</button>
+    <span class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">1</span></span>
+    <button class="ctrl-btn" id="nextBtn" title="Slide suivante">&#9654;</button>
+    <button class="ctrl-btn" id="fullscreenBtn" title="Plein écran (F)">F</button>
+    <button class="ctrl-btn" id="menuBtn" title="Menu slides">&#9776;</button>
+  </div>
+</header>
+
+<!-- Progress bar -->
+<div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+
+<!-- Slide Menu -->
+<div class="slide-menu" id="slideMenu"></div>
+
+<!-- Slides -->
+<div class="slides-wrapper" id="slidesWrapper">
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- JOUR 1 — CI/CD avancé & Infrastructure as Code            -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+
+  <!-- J1.00 — Title -->
+  <div class="slide hero" data-day="1">
+    <div class="slide-number">J1.00</div>
+    <div class="slide-title accent">DevOps Avancé</div>
+    <p class="slide-subtitle">CI/CD, Infrastructure as Code, Kubernetes, Monitoring & DevSecOps — 3 jours pour maîtriser le cycle complet</p>
+    <div style="margin-top: 24px;">
+      <span class="tag cyan">CI/CD</span>
+      <span class="tag blue">Terraform</span>
+      <span class="tag emerald">Kubernetes</span>
+      <span class="tag amber">Prometheus</span>
+      <span class="tag rose">DevSecOps</span>
+      <span class="tag violet">GitOps</span>
+    </div>
+  </div>
+
+  <!-- J1.01 — Roadmap 3 jours -->
+  <div class="slide" data-day="1">
+    <div class="slide-number">J1.01</div>
+    <div class="slide-title">Ce qu'on va voir ensemble</div>
+    <p class="slide-subtitle">3 jours, un fil rouge unique : faire évoluer une seule application jusqu'à la prod observable</p>
+
+    <div class="three-cols" style="margin-top: 20px;">
+      <div class="card cyan">
+        <h4>Jour 1 — CI/CD & IaC</h4>
+        <ul>
+          <li>Pipelines CI/CD multi-stages</li>
+          <li>GitHub Actions avancé</li>
+          <li>Terraform — infra déclarative</li>
+          <li>Ansible — config management</li>
+        </ul>
+        <p style="margin-top:12px;"><span class="tag cyan">Automatiser</span></p>
+      </div>
+      <div class="card emerald">
+        <h4>Jour 2 — Conteneurs & Monitoring</h4>
+        <ul>
+          <li>Docker multi-stage & sécurité</li>
+          <li>Kubernetes — orchestration</li>
+          <li>Helm & Kustomize</li>
+          <li>Prometheus & Grafana</li>
+        </ul>
+        <p style="margin-top:12px;"><span class="tag emerald">Orchestrer & Observer</span></p>
+      </div>
+      <div class="card violet">
+        <h4>Jour 3 — DevSecOps & Cloud</h4>
+        <ul>
+          <li>Scan de sécurité (Trivy, OPA)</li>
+          <li>GitOps avec ArgoCD</li>
+          <li>Patterns cloud-native</li>
+          <li>Projet final — pipeline E2E</li>
+        </ul>
+        <p style="margin-top:12px;"><span class="tag violet">Sécuriser & Livrer</span></p>
+      </div>
+    </div>
+
+    <div class="info-box tip" style="margin-top: 20px;">
+      <strong>Philosophie</strong> : chaque concept est mis en pratique immédiatement. Pas de théorie sans exercice. On apprend en faisant.
+    </div>
+    <div class="info-box success" style="margin-top: 12px;">
+      <strong>Socle</strong> : une app unique avec <code>/</code>, <code>/health</code> et <code>/metrics</code>, puis une montée en puissance progressive jusqu'à GitOps.<br>
+      <strong>Stretch</strong> : multi-cloud, OPA avancé, Kustomize poussé, service mesh si le rythme le permet.
+    </div>
+  </div>
+
+  <!-- J1.02 — La boîte à outils -->
+  <div class="slide" data-day="1"
+       data-exercise="../exercises/00-environnement.md">
+    <div class="slide-number">J1.02</div>
+    <div class="slide-title">La boîte à outils</div>
+    <p class="slide-subtitle">Les outils qu'on va utiliser pendant ces 3 jours</p>
+
+    <div class="three-cols" style="margin-top: 16px;">
+      <div class="card cyan">
+        <h4>GitHub Actions</h4>
+        <p>CI/CD intégré à GitHub. Workflows YAML, matrix builds, environments protégés.</p>
+        <p style="margin-top:8px;"><span class="tag cyan">CI/CD</span></p>
+      </div>
+      <div class="card blue">
+        <h4>Terraform</h4>
+        <p>Infrastructure as Code déclarative. Providers AWS, GCP, Azure, Docker. State + plan/apply.</p>
+        <p style="margin-top:8px;"><span class="tag blue">IaC</span></p>
+      </div>
+      <div class="card violet">
+        <h4>Ansible</h4>
+        <p>Configuration management agentless. Playbooks YAML, roles, idempotence via SSH.</p>
+        <p style="margin-top:8px;"><span class="tag violet">Config</span></p>
+      </div>
+    </div>
+    <div class="three-cols" style="margin-top: 12px;">
+      <div class="card emerald">
+        <h4>Docker & Kubernetes</h4>
+        <p>Conteneurisation + orchestration. Multi-stage builds, Pods, Deployments, Services, Helm.</p>
+        <p style="margin-top:8px;"><span class="tag emerald">Orchestration</span></p>
+      </div>
+      <div class="card amber">
+        <h4>Prometheus & Grafana</h4>
+        <p>Collecte de métriques time-series + visualisation. PromQL, alerting, dashboards as code.</p>
+        <p style="margin-top:8px;"><span class="tag amber">Monitoring</span></p>
+      </div>
+      <div class="card rose">
+        <h4>Trivy & ArgoCD</h4>
+        <p>Scan de vulnérabilités (images, deps, IaC) + déploiement GitOps déclaratif sur K8s.</p>
+        <p style="margin-top:8px;"><span class="tag rose">Sécu & GitOps</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- J1.03 — État de l'art DevOps -->
+  <div class="slide" data-day="1"
+       data-exercise="../exercises/00-environnement.md">
+    <div class="slide-number">J1.03</div>
+    <div class="slide-title">État de l'art DevOps 2026</div>
+    <div class="two-cols">
+      <div>
+        <h3>Le mouvement DevOps</h3>
+        <ul>
+          <li><strong>Culture</strong> — collaboration Dev + Ops, boucles de feedback</li>
+          <li><strong>Automatisation</strong> — tout ce qui peut être automatisé doit l'être</li>
+          <li><strong>Mesure</strong> — DORA metrics : fréquence de déploiement, lead time, MTTR, taux d'échec</li>
+          <li><strong>Partage</strong> — documentation, post-mortems, retrospectives</li>
+        </ul>
+        <div class="info-box tip">
+          <strong>CALMS</strong> : Culture, Automation, Lean, Measurement, Sharing
+        </div>
+      </div>
+      <div>
+        <h3>Tendances 2026</h3>
+        <ul>
+          <li><em>Platform Engineering</em> — portails développeur (Backstage)</li>
+          <li><em>GitOps</em> — Git comme source de vérité</li>
+          <li><em>DevSecOps</em> — sécurité shift-left</li>
+          <li><em>FinOps</em> — optimisation des coûts cloud</li>
+          <li><em>AI/ML Ops</em> — intégration de l'IA dans les pipelines</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- J1.04 — Pipeline Overview -->
+  <div class="slide" data-day="1">
+    <div class="slide-number">J1.04</div>
+    <div class="slide-title">Anatomie d'un pipeline CI/CD</div>
+    <p class="slide-subtitle">Du commit au déploiement : chaque étape est un garde-fou</p>
+
+    <div class="pipeline">
+      <div class="stage cyan">Commit<span class="stage-label">Git push</span></div>
+      <div class="connector"></div>
+      <div class="stage blue">Build<span class="stage-label">Compiler / Docker</span></div>
+      <div class="connector"></div>
+      <div class="stage emerald">Test<span class="stage-label">Unit / Integ</span></div>
+      <div class="connector"></div>
+      <div class="stage amber">Scan<span class="stage-label">SAST / Images</span></div>
+      <div class="connector"></div>
+      <div class="stage rose">Deploy<span class="stage-label">Staging → Prod</span></div>
+    </div>
+
+    <div class="two-cols" style="margin-top: 32px;">
+      <div class="card cyan">
+        <h4>CI — Intégration Continue</h4>
+        <p>Build + Test automatiques à chaque commit. Feedback en minutes, pas en jours.</p>
+      </div>
+      <div class="card emerald">
+        <h4>CD — Livraison / Déploiement Continu</h4>
+        <p><strong>Continuous Delivery</strong> = prêt à déployer. <strong>Continuous Deployment</strong> = déploiement automatique en prod.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- J1.03 — Pipeline multi-stages -->
+  <div class="slide" data-day="1"
+       data-exercise="../exercises/01-pipeline-cicd.md">
+    <div class="slide-number">J1.05</div>
+    <div class="slide-title">Pipelines multi-stages</div>
+    <div class="two-cols">
+      <div>
+        <h3>Principes avancés</h3>
+        <ul>
+          <li><strong>Parallélisme</strong> — exécuter les jobs indépendants en parallèle</li>
+          <li><strong>Cache</strong> — réutiliser les dépendances entre runs</li>
+          <li><strong>Matrix builds</strong> — tester sur plusieurs versions/OS</li>
+          <li><strong>Artefacts</strong> — passer des résultats entre stages</li>
+          <li><strong>Environnements</strong> — staging, production avec approval gates</li>
+        </ul>
+        <div class="info-box tip">
+          <strong>Règle d'or</strong> : sur une pull request, viser un feedback en moins de 10 minutes. Au-delà, optimiser.
+        </div>
+      </div>
+      <div>
+        <h3>Architecture type</h3>
+        <pre><code>jobs:
+  test:        # Parallèle sur 3 versions Node
+    matrix: [18, 20, 22]
+    cache: npm
+
+  build:       # Dépend de test
+    needs: test
+    docker: buildx + cache GHA
+
+  security:    # Dépend de build
+    needs: build
+    trivy: image scan
+
+  deploy:      # Dépend de build + security
+    needs: [build, security]
+    environment: production</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- J1.04 — GitHub Actions avancé -->
+  <div class="slide" data-day="1"
+       data-exercise="../exercises/02-github-actions.md">
+    <div class="slide-number">J1.06</div>
+    <div class="slide-title">GitHub Actions avancé</div>
+    <div class="two-cols">
+      <div>
+        <h3>Workflows réutilisables</h3>
+        <pre><code># workflow appelé via :
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        type: string
+        required: true
+    secrets:
+      registry-password:
+        required: true</code></pre>
+        <h3>Actions composites</h3>
+        <p>Regrouper des steps communs dans une action locale <code>.github/actions/</code></p>
+      </div>
+      <div>
+        <h3>Environments & Secrets</h3>
+        <table>
+          <tr><th>Environnement</th><th>Protection</th></tr>
+          <tr><td><code>staging</code></td><td>Déploiement auto</td></tr>
+          <tr><td><code>production</code></td><td>Review + timer 5 min</td></tr>
+        </table>
+        <div class="info-box warning">
+          <strong>Secrets</strong> : ne JAMAIS les mettre dans le code. Utiliser <code>${{ secrets.X }}</code> — GitHub les masque automatiquement dans les logs.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J1.05 — Introduction Terraform -->
+  <div class="slide" data-day="1">
+    <div class="slide-number">J1.07</div>
+    <div class="slide-title">Infrastructure as Code — Terraform</div>
+    <p class="slide-subtitle">Décrire, versionner et automatiser votre infrastructure</p>
+
+    <div class="diagram">
+      <div class="node cyan">Code HCL</div>
+      <span class="arrow">→</span>
+      <div class="node blue">terraform plan</div>
+      <span class="arrow">→</span>
+      <div class="node emerald">terraform apply</div>
+      <span class="arrow">→</span>
+      <div class="node amber active">Infrastructure réelle</div>
+    </div>
+
+    <div class="three-cols" style="margin-top: 24px;">
+      <div class="card cyan">
+        <h4>Déclaratif</h4>
+        <p>On décrit <strong>l'état souhaité</strong>. Terraform calcule les actions nécessaires.</p>
+      </div>
+      <div class="card blue">
+        <h4>Providers</h4>
+        <p>AWS, GCP, Azure, Docker, GitHub... +3000 providers disponibles.</p>
+      </div>
+      <div class="card amber">
+        <h4>State</h4>
+        <p>Le <strong>state file</strong> fait le lien entre le code et la réalité. Critique pour le plan/apply.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- J1.06 — Terraform HCL -->
+  <div class="slide" data-day="1"
+       data-exercise="../exercises/03-terraform-init.md">
+    <div class="slide-number">J1.08</div>
+    <div class="slide-title">Terraform — Syntaxe HCL</div>
+    <div class="two-cols">
+      <div>
+        <h3>Blocs fondamentaux</h3>
+        <pre><code># Provider
+provider "docker" {}
+
+# Resource
+resource "docker_container" "web" {
+  name  = "my-app"
+  image = docker_image.nginx.image_id
+  ports {
+    internal = 80
+    external = 8080
+  }
+}
+
+# Variable
+variable "environment" {
+  type    = string
+  default = "dev"
+}
+
+# Output
+output "url" {
+  value = "http://localhost:8080"
+}</code></pre>
+      </div>
+      <div>
+        <h3>Cycle de vie</h3>
+        <div class="terminal">
+          <span class="prompt">$</span> terraform init<br>
+          <span class="output">Initializing provider plugins...</span><br><br>
+          <span class="prompt">$</span> terraform plan<br>
+          <span class="output">Plan: 3 to add, 0 to change, 0 to destroy</span><br><br>
+          <span class="prompt">$</span> terraform apply<br>
+          <span class="output">Apply complete! Resources: 3 added</span><br><br>
+          <span class="prompt">$</span> terraform destroy<br>
+          <span class="output">Destroy complete! Resources: 3 destroyed</span>
+        </div>
+        <div class="info-box success">
+          <strong>Idempotent</strong> : relancer <code>apply</code> sans changement → aucune action
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J1.07 — Terraform Modules -->
+  <div class="slide" data-day="1"
+       data-exercise="../exercises/04-terraform-modules.md">
+    <div class="slide-number">J1.09</div>
+    <div class="slide-title">Terraform — Modules & Remote State</div>
+    <div class="two-cols">
+      <div>
+        <h3>Modules réutilisables</h3>
+        <pre><code>modules/
+  webapp/
+    main.tf       # Resources
+    variables.tf  # Inputs
+    outputs.tf    # Outputs
+
+# Utilisation
+module "webapp" {
+  source      = "./modules/webapp"
+  app_name    = "my-app"
+  environment = "dev"
+  replicas    = 3
+}</code></pre>
+        <p>Un module = un composant réutilisable avec une interface claire (variables → outputs).</p>
+      </div>
+      <div>
+        <h3>Remote State</h3>
+        <pre><code>terraform {
+  backend "s3" {
+    bucket = "my-tf-state"
+    key    = "prod/terraform.tfstate"
+    region = "eu-west-1"
+    encrypt = true
+    dynamodb_table = "tf-lock"
+  }
+}</code></pre>
+        <div class="info-box warning">
+          <strong>State = données sensibles</strong>. Toujours chiffrer, jamais dans Git. Utiliser un backend distant avec locking (S3 + DynamoDB, GCS, etc.).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J1.08 — Ansible Introduction -->
+  <div class="slide" data-day="1">
+    <div class="slide-number">J1.10</div>
+    <div class="slide-title">Ansible — Configuration Management</div>
+    <p class="slide-subtitle">Automatiser la configuration de vos serveurs de manière idempotente</p>
+
+    <div class="diagram">
+      <div class="node cyan">Inventaire</div>
+      <span class="arrow">→</span>
+      <div class="node blue">Playbook</div>
+      <span class="arrow">→</span>
+      <div class="node emerald">SSH</div>
+      <span class="arrow">→</span>
+      <div class="node amber active">Serveurs configurés</div>
+    </div>
+
+    <div class="three-cols" style="margin-top: 24px;">
+      <div class="card cyan">
+        <h4>Agentless</h4>
+        <p>Rien à installer sur les cibles. Connexion via SSH ou Docker.</p>
+      </div>
+      <div class="card emerald">
+        <h4>Idempotent</h4>
+        <p>Relancer 10 fois le playbook → même résultat. <code>changed=0</code> au 2e run.</p>
+      </div>
+      <div class="card violet">
+        <h4>Roles</h4>
+        <p>Organiser en composants réutilisables : tasks, handlers, templates, vars.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- J1.09 — Ansible Playbooks -->
+  <div class="slide" data-day="1"
+       data-exercise="../exercises/05-ansible-playbook.md">
+    <div class="slide-number">J1.11</div>
+    <div class="slide-title">Ansible — Playbooks & Roles</div>
+    <div class="two-cols">
+      <div>
+        <h3>Playbook type</h3>
+        <pre><code>---
+- name: Configurer le serveur web
+  hosts: webservers
+  become: true
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+  tasks:
+    - name: Installer Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Déployer la config
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+      notify: restart nginx</code></pre>
+      </div>
+      <div>
+        <h3>Structure en roles</h3>
+        <pre><code>roles/
+  nginx/
+    tasks/main.yml
+    handlers/main.yml
+    templates/nginx.conf.j2
+    defaults/main.yml
+
+# Playbook principal
+- hosts: webservers
+  roles:
+    - base
+    - nginx</code></pre>
+        <div class="info-box tip">
+          <strong>Terraform + Ansible</strong> = combo gagnant.<br>
+          Terraform provisionne l'infra → Ansible configure les machines.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J1.10 — Retro J1 -->
+  <div class="slide hero" data-day="1">
+    <div class="slide-number">J1.12</div>
+    <div class="slide-title">Rétrospective Jour 1</div>
+    <p class="slide-subtitle">CI/CD multi-stages + Terraform + Ansible</p>
+    <div class="three-cols" style="margin-top: 32px; max-width: 800px;">
+      <div class="card emerald">
+        <h4>Ce qui a marché</h4>
+        <p>Quels concepts sont clairs ?</p>
+      </div>
+      <div class="card amber">
+        <h4>Blocages</h4>
+        <p>Où avez-vous rencontré des difficultés ?</p>
+      </div>
+      <div class="card cyan">
+        <h4>Questions</h4>
+        <p>Que voulez-vous approfondir demain ?</p>
+      </div>
+    </div>
+    <div class="info-box tip" style="margin-top: 32px; max-width: 600px;">
+      <strong>Demain</strong> : Docker avancé, Kubernetes, Prometheus & Grafana
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- JOUR 2 — Conteneurs, Orchestration & Monitoring           -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+
+  <!-- J2.00 — Title -->
+  <div class="slide hero" data-day="2">
+    <div class="slide-number">J2.00</div>
+    <div class="slide-title accent">Jour 2 — Conteneurs & Orchestration</div>
+    <p class="slide-subtitle">Docker avancé, Kubernetes, Monitoring avec Prometheus & Grafana</p>
+  </div>
+
+  <!-- J2.01 — Docker avancé -->
+  <div class="slide" data-day="2"
+       data-exercise="../exercises/06-docker-avance.md">
+    <div class="slide-number">J2.01</div>
+    <div class="slide-title">Docker avancé — Optimisation</div>
+    <div class="two-cols">
+      <div>
+        <h3>Multi-stage builds</h3>
+        <pre><code># Stage 1 : Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm test
+
+# Stage 2 : Production
+FROM node:20-alpine
+USER node
+COPY --from=builder /app/src ./src
+EXPOSE 3000
+HEALTHCHECK --interval=30s \
+  CMD wget -q --spider http://localhost:3000
+CMD ["node", "src/index.js"]</code></pre>
+      </div>
+      <div>
+        <h3>Checklist sécurité</h3>
+        <ul>
+          <li><strong>Base minimale</strong> — choisir l'image la plus petite adaptée au runtime (<code>alpine</code>, <code>slim</code>, distroless...)</li>
+          <li><strong>User non-root</strong> — <code>USER node</code> obligatoire</li>
+          <li><strong>HEALTHCHECK</strong> — pour l'orchestrateur</li>
+          <li><strong>.dockerignore</strong> — exclure node_modules, .git, .env</li>
+          <li><strong>Pas de :latest</strong> — toujours un tag versionné</li>
+        </ul>
+        <div class="info-box success">
+          <strong>Résultat</strong> : 500 MB → 80 MB, surface d'attaque réduite de 90%
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J2.02 — Kubernetes Architecture -->
+  <div class="slide" data-day="2">
+    <div class="slide-number">J2.02</div>
+    <div class="slide-title">Kubernetes — Architecture</div>
+    <p class="slide-subtitle">Orchestrer vos conteneurs à l'échelle</p>
+
+    <div class="diagram">
+      <div class="node cyan">API Server</div>
+      <span class="arrow">→</span>
+      <div class="node blue">etcd</div>
+      <span class="arrow">&nbsp;</span>
+      <div class="node blue">Scheduler</div>
+      <span class="arrow">&nbsp;</span>
+      <div class="node blue">Controller</div>
+    </div>
+    <p style="text-align:center; font-size:0.8em; margin: 8px 0; color: var(--text-dim);">Control Plane ↑ &nbsp;&nbsp; Worker Nodes ↓</p>
+    <div class="diagram">
+      <div class="node emerald">Node 1<br><small>kubelet + pods</small></div>
+      <div class="node emerald">Node 2<br><small>kubelet + pods</small></div>
+      <div class="node emerald">Node 3<br><small>kubelet + pods</small></div>
+    </div>
+
+    <div class="three-cols" style="margin-top: 16px;">
+      <div class="card cyan">
+        <h4>Pod</h4>
+        <p>Plus petite unité. 1+ conteneurs partageant réseau et stockage.</p>
+      </div>
+      <div class="card blue">
+        <h4>Service</h4>
+        <p>Expose les pods avec un DNS stable et du load balancing.</p>
+      </div>
+      <div class="card emerald">
+        <h4>Deployment</h4>
+        <p>Gère les replicas, rolling updates et rollbacks.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- J2.03 — Kubernetes Ressources -->
+  <div class="slide" data-day="2"
+       data-exercise="../exercises/07-kubernetes-deploy.md">
+    <div class="slide-number">J2.03</div>
+    <div class="slide-title">Kubernetes — Ressources essentielles</div>
+    <div class="two-cols">
+      <div>
+        <h3>Manifeste Deployment</h3>
+        <pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    spec:
+      containers:
+        - name: app
+          image: my-app:v1.2.0
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000</code></pre>
+      </div>
+      <div>
+        <h3>Ressources complémentaires</h3>
+        <table>
+          <tr><th>Ressource</th><th>Rôle</th></tr>
+          <tr><td><code>ConfigMap</code></td><td>Configuration non sensible</td></tr>
+          <tr><td><code>Secret</code></td><td>Données sensibles (base64)</td></tr>
+          <tr><td><code>Service</code></td><td>Exposition réseau + DNS</td></tr>
+          <tr><td><code>Ingress</code></td><td>Routage HTTP externe</td></tr>
+          <tr><td><code>PVC</code></td><td>Stockage persistant</td></tr>
+          <tr><td><code>HPA</code></td><td>Autoscaling horizontal</td></tr>
+        </table>
+        <div class="info-box tip">
+          <strong>Probes</strong> : <code>readinessProbe</code> = prêt à recevoir du trafic. <code>livenessProbe</code> = toujours vivant, sinon restart.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J2.04 — kubectl -->
+  <div class="slide" data-day="2">
+    <div class="slide-number">J2.04</div>
+    <div class="slide-title">kubectl — Commandes essentielles</div>
+    <div class="two-cols">
+      <div>
+        <h3>Déployer et observer</h3>
+        <div class="terminal">
+          <span class="prompt">$</span> kubectl apply -f k8s/<br>
+          <span class="output">deployment/my-app created</span><br>
+          <span class="output">service/my-app-svc created</span><br><br>
+          <span class="prompt">$</span> kubectl get pods -w<br>
+          <span class="output">NAME          READY   STATUS    RESTARTS</span><br>
+          <span class="output">my-app-abc    1/1     Running   0</span><br>
+          <span class="output">my-app-def    1/1     Running   0</span><br>
+          <span class="output">my-app-ghi    1/1     Running   0</span><br><br>
+          <span class="prompt">$</span> kubectl logs -l app=my-app --tail=20<br>
+          <span class="prompt">$</span> kubectl port-forward svc/my-app-svc 8080:80
+        </div>
+      </div>
+      <div>
+        <h3>Scaling & Rolling Updates</h3>
+        <div class="terminal">
+          <span class="prompt"># Scaler à 5 replicas</span><br>
+          <span class="prompt">$</span> kubectl scale deploy my-app --replicas=5<br><br>
+          <span class="prompt"># Mettre à jour l'image</span><br>
+          <span class="prompt">$</span> kubectl set image deploy/my-app app=my-app:v2<br><br>
+          <span class="prompt"># Suivre le rollout</span><br>
+          <span class="prompt">$</span> kubectl rollout status deploy/my-app<br><br>
+          <span class="prompt"># Rollback si problème</span><br>
+          <span class="prompt">$</span> kubectl rollout undo deploy/my-app
+        </div>
+        <div class="info-box warning">
+          <strong>Rolling Update</strong> : <code>maxSurge=1</code> et <code>maxUnavailable=0</code> réduisent fortement le risque d'interruption, à condition d'avoir des probes fiables et assez de capacité.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J2.05 — Helm -->
+  <div class="slide" data-day="2"
+       data-exercise="../exercises/08-helm-charts.md">
+    <div class="slide-number">J2.05</div>
+    <div class="slide-title">Helm & Kustomize</div>
+    <div class="two-cols">
+      <div>
+        <h3>Helm — Package manager K8s</h3>
+        <pre><code># Créer un chart
+helm create my-app/
+
+# Installer
+helm install my-release ./my-app \
+  -f values-prod.yaml \
+  -n production
+
+# Upgrade
+helm upgrade my-release ./my-app \
+  --set image.tag=v2.0.0
+
+# Rollback
+helm rollback my-release 1</code></pre>
+        <p><strong>Chart</strong> = templates + values par défaut. Chaque env a son <code>values-{env}.yaml</code>.</p>
+      </div>
+      <div>
+        <h3>Kustomize — Overlays natifs</h3>
+        <pre><code>base/
+  deployment.yaml
+  service.yaml
+  kustomization.yaml
+overlays/
+  dev/
+    kustomization.yaml   # namePrefix: dev-
+    replicas-patch.yaml  # replicas: 1
+  prod/
+    kustomization.yaml   # namePrefix: prod-
+    replicas-patch.yaml  # replicas: 5</code></pre>
+        <div class="info-box tip">
+          <strong>Helm vs Kustomize</strong> : Helm pour le templating complexe et les charts communautaires. Kustomize pour les overlays simples — intégré à kubectl.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J2.06 — Monitoring intro -->
+  <div class="slide" data-day="2">
+    <div class="slide-number">J2.06</div>
+    <div class="slide-title">Monitoring & Observabilité</div>
+    <p class="slide-subtitle">Les 3 piliers : Métriques, Logs, Traces</p>
+
+    <div class="three-cols" style="margin-top: 24px;">
+      <div class="card cyan">
+        <h4>Métriques</h4>
+        <p><strong>Prometheus</strong><br>Données numériques time-series. CPU, mémoire, requêtes/s, latence, taux d'erreur.</p>
+        <p style="margin-top:8px"><em>Quoi + Combien</em></p>
+      </div>
+      <div class="card emerald">
+        <h4>Logs</h4>
+        <p><strong>Loki / ELK</strong><br>Événements textuels structurés. Erreurs, warnings, traces d'exécution.</p>
+        <p style="margin-top:8px"><em>Quand + Contexte</em></p>
+      </div>
+      <div class="card violet">
+        <h4>Traces</h4>
+        <p><strong>Jaeger / Tempo</strong><br>Suivi d'une requête à travers les microservices. Latence par service.</p>
+        <p style="margin-top:8px"><em>Où + Parcours</em></p>
+      </div>
+    </div>
+
+    <div class="info-box tip" style="margin-top: 24px;">
+      <strong>Golden Signals</strong> (Google SRE) : Latence, Trafic, Erreurs, Saturation — les 4 métriques à surveiller en priorité.
+    </div>
+  </div>
+
+  <!-- J2.07 — Prometheus -->
+  <div class="slide" data-day="2"
+       data-exercise="../exercises/09-prometheus-grafana.md">
+    <div class="slide-number">J2.07</div>
+    <div class="slide-title">Prometheus — Métriques & Alerting</div>
+    <div class="two-cols">
+      <div>
+        <h3>Architecture</h3>
+        <div class="diagram" style="flex-direction: column; gap: 8px;">
+          <div class="node cyan" style="min-width:200px">Prometheus Server<br><small>Scrape + Stockage + Requêtes</small></div>
+          <div style="display:flex; gap: 12px; justify-content:center;">
+            <div class="node emerald" style="min-width: 100px"><small>App /metrics</small></div>
+            <div class="node emerald" style="min-width: 100px"><small>Node Exporter</small></div>
+            <div class="node emerald" style="min-width: 100px"><small>cAdvisor</small></div>
+          </div>
+        </div>
+
+        <h3>PromQL essentiel</h3>
+        <pre><code># Requêtes par seconde
+rate(http_requests_total[5m])
+
+# Latence P95
+histogram_quantile(0.95,
+  rate(http_duration_bucket[5m]))
+
+# Taux d'erreur
+sum(rate(http_requests{status=~"5.."}[5m]))
+/ sum(rate(http_requests[5m]))</code></pre>
+      </div>
+      <div>
+        <h3>Alerting</h3>
+        <pre><code>groups:
+  - name: app
+    rules:
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_duration_bucket[5m])
+          ) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 > 500ms"</code></pre>
+        <div class="info-box warning">
+          <strong>AlertManager</strong> route les alertes : Slack, PagerDuty, email. Grouping pour éviter le spam.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J2.08 — Grafana -->
+  <div class="slide" data-day="2">
+    <div class="slide-number">J2.08</div>
+    <div class="slide-title">Grafana — Dashboards</div>
+    <div class="two-cols">
+      <div>
+        <h3>Dashboard type</h3>
+        <div class="three-cols">
+          <div class="card cyan" style="text-align:center;">
+            <h4 style="font-size:2em; margin:0;">1.2k</h4>
+            <p>req/s</p>
+          </div>
+          <div class="card emerald" style="text-align:center;">
+            <h4 style="font-size:2em; margin:0;">42ms</h4>
+            <p>P95 latency</p>
+          </div>
+          <div class="card rose" style="text-align:center;">
+            <h4 style="font-size:2em; margin:0;">0.1%</h4>
+            <p>error rate</p>
+          </div>
+        </div>
+        <div class="info-box success" style="margin-top: 16px;">
+          <strong>Dashboards as Code</strong> : provisionner via JSON + Grafana provisioning. Versionner dans Git.
+        </div>
+      </div>
+      <div>
+        <h3>Provisioning automatique</h3>
+        <pre><code># grafana/provisioning/datasources/
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    url: http://prometheus:9090
+    isDefault: true
+
+# grafana/provisioning/dashboards/
+apiVersion: 1
+providers:
+  - name: default
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards</code></pre>
+        <p>Les dashboards communautaires (ID <code>1860</code> = Node Exporter Full) s'importent en 1 clic.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- J2.09 — Retro J2 -->
+  <div class="slide hero" data-day="2">
+    <div class="slide-number">J2.09</div>
+    <div class="slide-title">Rétrospective Jour 2</div>
+    <p class="slide-subtitle">Docker avancé + Kubernetes + Monitoring</p>
+    <div class="pipeline" style="margin-top: 32px;">
+      <div class="stage cyan">Build<span class="stage-label">Docker multi-stage</span></div>
+      <div class="connector"></div>
+      <div class="stage blue">Deploy<span class="stage-label">K8s + Helm</span></div>
+      <div class="connector"></div>
+      <div class="stage emerald">Observe<span class="stage-label">Prometheus + Grafana</span></div>
+      <div class="connector"></div>
+      <div class="stage amber">Iterate<span class="stage-label">Scale + Update</span></div>
+    </div>
+    <div class="info-box tip" style="margin-top: 32px; max-width: 600px;">
+      <strong>Demain</strong> : DevSecOps, GitOps avec ArgoCD et déploiement cloud-native
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- JOUR 3 — DevSecOps & Cloud-Native                         -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+
+  <!-- J3.00 — Title -->
+  <div class="slide hero" data-day="3">
+    <div class="slide-number">J3.00</div>
+    <div class="slide-title accent">Jour 3 — DevSecOps & Cloud-Native</div>
+    <p class="slide-subtitle">Sécurité shift-left, GitOps avec ArgoCD et patterns cloud-native</p>
+  </div>
+
+  <!-- J3.01 — DevSecOps Principles -->
+  <div class="slide" data-day="3">
+    <div class="slide-number">J3.01</div>
+    <div class="slide-title">DevSecOps — Shift-Left Security</div>
+    <p class="slide-subtitle">La sécurité est l'affaire de tous, pas seulement de l'équipe sécu</p>
+
+    <div class="pipeline">
+      <div class="stage rose">Code<span class="stage-label">SAST / Linting</span></div>
+      <div class="connector"></div>
+      <div class="stage rose">Build<span class="stage-label">Scan dépendances</span></div>
+      <div class="connector"></div>
+      <div class="stage rose">Test<span class="stage-label">DAST / Pentest</span></div>
+      <div class="connector"></div>
+      <div class="stage rose">Deploy<span class="stage-label">Scan images</span></div>
+      <div class="connector"></div>
+      <div class="stage rose">Run<span class="stage-label">Runtime security</span></div>
+    </div>
+
+    <div class="two-cols" style="margin-top: 24px;">
+      <div>
+        <h3>Types de scan</h3>
+        <table>
+          <tr><th>Type</th><th>Quand</th><th>Outils</th></tr>
+          <tr><td><strong>SAST</strong></td><td>Code source</td><td>CodeQL, Semgrep</td></tr>
+          <tr><td><strong>SCA</strong></td><td>Dépendances</td><td>Snyk, Dependabot</td></tr>
+          <tr><td><strong>Image scan</strong></td><td>Build</td><td>Trivy, Grype</td></tr>
+          <tr><td><strong>IaC scan</strong></td><td>Terraform</td><td>Trivy, Checkov</td></tr>
+          <tr><td><strong>Secret scan</strong></td><td>Git</td><td>Gitleaks, TruffleHog</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3>Supply Chain Security</h3>
+        <ul>
+          <li><strong>SBOM</strong> — Software Bill of Materials</li>
+          <li><strong>Signatures</strong> — Cosign pour signer les images</li>
+          <li><strong>Provenance</strong> — SLSA framework</li>
+          <li><strong>Lock files</strong> — verrouiller les versions</li>
+        </ul>
+        <div class="info-box danger">
+          <strong>Supply chain attacks</strong> : SolarWinds, Log4Shell, xz-utils. Scanner n'est pas optionnel.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J3.02 — Trivy & scanning -->
+  <div class="slide" data-day="3"
+       data-exercise="../exercises/10-devsecops-scan.md">
+    <div class="slide-number">J3.02</div>
+    <div class="slide-title">Scan & Conformité en pratique</div>
+    <div class="two-cols">
+      <div>
+        <h3>Trivy — Scanner universel</h3>
+        <div class="terminal">
+          <span class="prompt">$</span> trivy image my-app:1.0.0<br>
+          <span class="output">Total: 3 (HIGH: 2, CRITICAL: 1)</span><br><br>
+          <span class="prompt">$</span> trivy fs --scanners vuln app/<br>
+          <span class="output">Total: 0 vulnerabilities</span><br><br>
+          <span class="prompt">$</span> trivy config infra/terraform/<br>
+          <span class="output">Misconfigurations: 1 (MEDIUM)</span><br><br>
+          <span class="prompt">$</span> gitleaks detect --source .<br>
+          <span class="output">No leaks found</span>
+        </div>
+      </div>
+      <div>
+        <h3>OPA — Politiques as Code</h3>
+        <pre><code>package kubernetes
+
+# Interdire les conteneurs privilégiés
+deny[msg] {
+  container := input.spec.template
+    .spec.containers[_]
+  container.securityContext.privileged
+  msg = sprintf(
+    "%s ne doit pas être privilégié",
+    [container.name])
+}
+
+# Exiger des resource limits
+deny[msg] {
+  container := input.spec.template
+    .spec.containers[_]
+  not container.resources.limits
+  msg = sprintf(
+    "%s doit avoir des limits",
+    [container.name])
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- J3.03 — GitOps Concepts -->
+  <div class="slide" data-day="3">
+    <div class="slide-number">J3.03</div>
+    <div class="slide-title">GitOps — Git comme source de vérité</div>
+    <div class="two-cols">
+      <div>
+        <h3>Principes GitOps</h3>
+        <ul>
+          <li><strong>Déclaratif</strong> — l'état souhaité est dans Git</li>
+          <li><strong>Versionné</strong> — chaque changement est un commit</li>
+          <li><strong>Pull automatique</strong> — l'agent sync le cluster</li>
+          <li><strong>Self-healing</strong> — dérive détectée → correction auto</li>
+        </ul>
+        <div class="info-box tip">
+          <strong>Push vs Pull</strong> : Push (CI pousse vers K8s) = credentials CI → risque. Pull (ArgoCD dans le cluster lit Git) = plus sûr.
+        </div>
+      </div>
+      <div>
+        <h3>Workflow GitOps</h3>
+        <div class="diagram" style="flex-direction: column; gap: 12px;">
+          <div style="display:flex; gap: 12px; align-items:center; justify-content:center;">
+            <div class="node cyan">Code Repo</div>
+            <span class="arrow">→ CI →</span>
+            <div class="node blue">GitOps Repo</div>
+          </div>
+          <div style="text-align:center; color: var(--text-dim);">↓ sync</div>
+          <div style="display:flex; gap: 12px; align-items:center; justify-content:center;">
+            <div class="node emerald active">ArgoCD</div>
+            <span class="arrow">→</span>
+            <div class="node amber">Cluster K8s</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J3.04 — ArgoCD -->
+  <div class="slide" data-day="3"
+       data-exercise="../exercises/11-gitops-argocd.md">
+    <div class="slide-number">J3.04</div>
+    <div class="slide-title">ArgoCD en pratique</div>
+    <div class="two-cols">
+      <div>
+        <h3>Application ArgoCD</h3>
+        <pre><code>apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-app-prod
+  namespace: argocd
+spec:
+  source:
+    repoURL: https://github.com/...
+    path: apps/my-app/overlays/prod
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true      # Supprime les orphelins
+      selfHeal: true   # Corrige les dérives</code></pre>
+      </div>
+      <div>
+        <h3>UI ArgoCD</h3>
+        <div class="three-cols">
+          <div class="card emerald" style="text-align:center;">
+            <h4 style="color: var(--accent-emerald);">Synced</h4>
+            <p>Git = Cluster</p>
+          </div>
+          <div class="card amber" style="text-align:center;">
+            <h4 style="color: var(--accent-amber);">OutOfSync</h4>
+            <p>Changement pending</p>
+          </div>
+          <div class="card rose" style="text-align:center;">
+            <h4 style="color: var(--accent-rose);">Degraded</h4>
+            <p>Pods en erreur</p>
+          </div>
+        </div>
+        <h3 style="margin-top: 16px;">Promotion multi-env</h3>
+        <div class="pipeline">
+          <div class="stage cyan">dev<span class="stage-label">auto-sync</span></div>
+          <div class="connector"></div>
+          <div class="stage blue">staging<span class="stage-label">auto-sync</span></div>
+          <div class="connector"></div>
+          <div class="stage amber">prod<span class="stage-label">manual sync</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J3.05 — Cloud-Native Patterns -->
+  <div class="slide" data-day="3">
+    <div class="slide-number">J3.05</div>
+    <div class="slide-title">Patterns Cloud-Native</div>
+    <div class="two-cols">
+      <div>
+        <h3>12-Factor App (extraits)</h3>
+        <table>
+          <tr><th>#</th><th>Facteur</th><th>Principe</th></tr>
+          <tr><td>I</td><td>Codebase</td><td>1 repo = 1 app</td></tr>
+          <tr><td>III</td><td>Config</td><td>Env vars, pas de fichiers</td></tr>
+          <tr><td>VI</td><td>Processes</td><td>Stateless, share-nothing</td></tr>
+          <tr><td>VII</td><td>Port binding</td><td>Self-contained HTTP</td></tr>
+          <tr><td>IX</td><td>Disposability</td><td>Démarrage rapide, arrêt propre</td></tr>
+          <tr><td>XI</td><td>Logs</td><td>Flux stdout, pas de fichiers</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3>Service Mesh</h3>
+        <div class="diagram" style="flex-direction:column; gap: 8px;">
+          <div style="display:flex; gap:8px; justify-content:center;">
+            <div class="node cyan"><small>Service A</small><br><small>+ sidecar</small></div>
+            <span class="arrow" style="align-self:center;">↔</span>
+            <div class="node cyan"><small>Service B</small><br><small>+ sidecar</small></div>
+          </div>
+          <div class="node violet" style="align-self:center; min-width:200px"><small>Control Plane (Istio/Linkerd)</small></div>
+        </div>
+        <p style="margin-top:12px">mTLS automatique, retry, circuit breaker, observabilité — sans modifier le code applicatif.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- J3.06 — Multi-Cloud Terraform -->
+  <div class="slide" data-day="3">
+    <div class="slide-number">J3.06</div>
+    <div class="slide-title">Déploiement Multi-Cloud (bonus)</div>
+    <div class="two-cols">
+      <div>
+        <h3>Terraform multi-provider</h3>
+        <pre><code># AWS
+provider "aws" {
+  region = "eu-west-1"
+}
+resource "aws_instance" "web" {
+  ami           = "ami-xxx"
+  instance_type = "t3.micro"
+}
+
+# GCP
+provider "google" {
+  project = "my-project"
+  region  = "europe-west1"
+}
+resource "google_compute_instance" "web" {
+  name         = "web-server"
+  machine_type = "e2-micro"
+}</code></pre>
+      </div>
+      <div>
+        <h3>Services managés comparés</h3>
+        <table>
+          <tr><th>Service</th><th>AWS</th><th>GCP</th><th>Azure</th></tr>
+          <tr><td>K8s</td><td>EKS</td><td>GKE</td><td>AKS</td></tr>
+          <tr><td>Serverless</td><td>Lambda</td><td>Cloud Run</td><td>Functions</td></tr>
+          <tr><td>Registry</td><td>ECR</td><td>GAR</td><td>ACR</td></tr>
+          <tr><td>DB managée</td><td>RDS</td><td>Cloud SQL</td><td>Azure DB</td></tr>
+          <tr><td>Object store</td><td>S3</td><td>GCS</td><td>Blob</td></tr>
+        </table>
+        <div class="info-box warning">
+          <strong>Piège multi-cloud</strong> : ne pas abstraire trop. Chaque provider a ses forces — utiliser le bon outil pour le bon cas d'usage.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J3.07 — Bilan & Ressources -->
+  <div class="slide hero" data-day="3">
+    <div class="slide-number">J3.07</div>
+    <div class="slide-title">Bilan & Ressources</div>
+    <div class="three-cols" style="margin-top: 32px; max-width: 900px;">
+      <div class="card cyan">
+        <h4>Jour 1</h4>
+        <p>CI/CD multi-stages<br>Terraform & Ansible<br>Infrastructure as Code</p>
+      </div>
+      <div class="card emerald">
+        <h4>Jour 2</h4>
+        <p>Docker avancé<br>Kubernetes & Helm<br>Prometheus & Grafana</p>
+      </div>
+      <div class="card violet">
+        <h4>Jour 3</h4>
+        <p>DevSecOps & Trivy<br>GitOps & ArgoCD<br>Cloud-native patterns</p>
+      </div>
+    </div>
+    <div style="margin-top: 32px; text-align: left; max-width: 500px;">
+      <h3>Pour aller plus loin</h3>
+      <ul>
+        <li><strong>Kubernetes the Hard Way</strong> — Kelsey Hightower</li>
+        <li><strong>The Phoenix Project</strong> — Gene Kim</li>
+        <li><strong>SRE Book</strong> — Google</li>
+        <li><strong>DORA State of DevOps Report</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- J3.08 — Merci -->
+  <div class="slide hero" data-day="3">
+    <div class="slide-number">J3.08</div>
+    <div class="slide-title accent">Merci !</div>
+    <p class="slide-subtitle">3 jours intenses — vous êtes prêts à piloter vos pipelines DevOps</p>
+    <div style="margin-top: 32px;">
+      <p><strong>Sion GENDERS</strong> — Formateur depuis 2011</p>
+      <p style="color: var(--accent-cyan);">linkedin.com/in/sion-gdrs/</p>
+    </div>
+  </div>
+
+</div><!-- /slides-wrapper -->
+
+<!-- TP Panel -->
+<div class="tp-panel" id="tpPanel">
+  <div class="tp-panel-header">
+    <h3>Travaux Pratiques</h3>
+    <a id="tpOpenLink" href="#" target="_blank">Ouvrir dans un onglet</a>
+  </div>
+  <div class="tp-panel-body" id="tpPanelBody">
+    <p class="tp-panel-empty">Sélectionnez une slide avec un exercice.</p>
+  </div>
+</div>
+
+<!-- Keyboard hints -->
+<div class="keyboard-hints">
+  <span><span class="key">&larr;</span><span class="key">&rarr;</span> navigation</span>
+  <span><span class="key">T</span> TP</span>
+  <span><span class="key">F</span> plein écran</span>
+  <span><span class="key">A</span> aide</span>
+</div>
+
+<script>
+  // State
+  let currentDay = 1;
+  let currentSlideIndex = 0;
+  let tpVisible = false;
+  let assistMode = false;
+  let currentExercisePath = '';
+  const exerciseCache = new Map();
+  let slides = [];
+  let filteredSlides = [];
+
+  // DOM elements
+  const slidesWrapper = document.getElementById('slidesWrapper');
+  const dayBtns = document.querySelectorAll('.day-btn');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+  const menuBtn = document.getElementById('menuBtn');
+  const slideMenu = document.getElementById('slideMenu');
+  const progressBar = document.getElementById('progressBar');
+  const currentSlideEl = document.getElementById('currentSlide');
+  const totalSlidesEl = document.getElementById('totalSlides');
+  const tpBtn = document.getElementById('tpBtn');
+  const assistBtn = document.getElementById('assistBtn');
+  const tpPanel = document.getElementById('tpPanel');
+  const tpPanelBody = document.getElementById('tpPanelBody');
+  const tpOpenLink = document.getElementById('tpOpenLink');
+
+  // Initialize
+  function init() {
+    slides = Array.from(document.querySelectorAll('.slide'));
+    filterSlidesByDay(currentDay);
+    updateSlide();
+    buildSlideMenu();
+  }
+
+  // Filter slides by day
+  function filterSlidesByDay(day) {
+    currentDay = day;
+    filteredSlides = slides.filter(s => parseInt(s.dataset.day) === day);
+    currentSlideIndex = 0;
+
+    dayBtns.forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.day) === day);
+    });
+
+    slides.forEach(s => {
+      s.classList.remove('active', 'prev');
+    });
+
+    buildSlideMenu();
+    updateSlide();
+  }
+
+  // Build slide menu
+  function buildSlideMenu() {
+    slideMenu.innerHTML = '';
+    filteredSlides.forEach((slide, index) => {
+      const number = slide.querySelector('.slide-number')?.textContent || '';
+      const title = slide.querySelector('.slide-title')?.textContent?.substring(0, 40) || '';
+
+      const item = document.createElement('div');
+      item.className = 'slide-menu-item' + (index === currentSlideIndex ? ' active' : '');
+      item.innerHTML = `<span class="slide-menu-number">${number}</span>${title}`;
+      item.addEventListener('click', () => {
+        goToSlide(index);
+        slideMenu.classList.remove('visible');
+      });
+      slideMenu.appendChild(item);
+    });
+  }
+
+  // Update current slide
+  function updateSlide() {
+    filteredSlides.forEach((slide, index) => {
+      slide.classList.remove('active', 'prev');
+      if (index === currentSlideIndex) {
+        slide.classList.add('active');
+      } else if (index < currentSlideIndex) {
+        slide.classList.add('prev');
+      }
+    });
+    const progress = ((currentSlideIndex + 1) / filteredSlides.length) * 100;
+    progressBar.style.width = `${progress}%`;
+
+    currentSlideEl.textContent = currentSlideIndex + 1;
+    totalSlidesEl.textContent = filteredSlides.length;
+
+    prevBtn.disabled = currentSlideIndex === 0;
+    nextBtn.disabled = currentSlideIndex === filteredSlides.length - 1;
+
+    document.querySelectorAll('.slide-menu-item').forEach((item, i) => {
+      item.classList.toggle('active', i === currentSlideIndex);
+    });
+
+    updateTpPanelAvailability();
+  }
+
+  // Navigation
+  function nextSlide() {
+    if (currentSlideIndex < filteredSlides.length - 1) {
+      currentSlideIndex++;
+      updateSlide();
+    }
+  }
+
+  function prevSlide() {
+    if (currentSlideIndex > 0) {
+      currentSlideIndex--;
+      updateSlide();
+    }
+  }
+
+  function goToSlide(index) {
+    if (index >= 0 && index < filteredSlides.length) {
+      currentSlideIndex = index;
+      updateSlide();
+    }
+  }
+
+  function setTpVisible(visible) {
+    tpVisible = visible;
+    tpPanel.classList.toggle('visible', tpVisible);
+    tpBtn.classList.toggle('active', tpVisible);
+  }
+
+  function toggleTp() {
+    const currentSlide = filteredSlides[currentSlideIndex];
+    if (!currentSlide?.dataset.exercise) return;
+    setTpVisible(!tpVisible);
+    if (tpVisible) {
+      loadExerciseForSlide(currentSlide);
+    }
+  }
+
+  function toggleAssist() {
+    const currentSlide = filteredSlides[currentSlideIndex];
+    if (!currentSlide?.dataset.exercise) return;
+    assistMode = !assistMode;
+    assistBtn.classList.toggle('active', assistMode);
+    if (tpVisible) {
+      loadExerciseForSlide(currentSlide);
+    }
+  }
+
+  function stripAssistSection(markdown) {
+    const lines = markdown.split('\n');
+    const output = [];
+    let skip = false;
+
+    for (const line of lines) {
+      if (/^##\s*(Aide|Assistance)\b/i.test(line)) {
+        skip = true;
+        continue;
+      }
+      if (skip && /^#{1,6}\s+/.test(line)) {
+        skip = false;
+      }
+      if (skip) continue;
+      output.push(line);
+    }
+
+    return output.join('\n');
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderMarkdown(markdown) {
+    const lines = markdown.split('\n');
+    let html = '';
+    let inCode = false;
+    let listType = null;
+
+    const closeList = () => {
+      if (listType) {
+        html += `</${listType}>`;
+        listType = null;
+      }
+    };
+
+    for (const line of lines) {
+      if (line.trim().startsWith('```')) {
+        if (inCode) {
+          html += '</code></pre>';
+          inCode = false;
+        } else {
+          closeList();
+          html += '<pre><code>';
+          inCode = true;
+        }
+        continue;
+      }
+
+      if (inCode) {
+        html += `${escapeHtml(line)}\n`;
+        continue;
+      }
+
+      if (line.trim() === '') {
+        closeList();
+        continue;
+      }
+
+      const headingMatch = line.match(/^(#{1,3})\s+(.*)$/);
+      if (headingMatch) {
+        closeList();
+        const level = headingMatch[1].length;
+        const tag = level <= 2 ? 'h3' : 'h4';
+        html += `<${tag}>${escapeHtml(headingMatch[2])}</${tag}>`;
+        continue;
+      }
+
+      const orderedMatch = line.match(/^\d+\.\s+(.*)$/);
+      if (orderedMatch) {
+        if (listType !== 'ol') {
+          closeList();
+          listType = 'ol';
+          html += '<ol>';
+        }
+        html += `<li>${escapeHtml(orderedMatch[1])}</li>`;
+        continue;
+      }
+
+      const bulletMatch = line.match(/^[-*]\s+(.*)$/);
+      if (bulletMatch) {
+        if (listType !== 'ul') {
+          closeList();
+          listType = 'ul';
+          html += '<ul>';
+        }
+        html += `<li>${escapeHtml(bulletMatch[1])}</li>`;
+        continue;
+      }
+
+      closeList();
+      html += `<p>${escapeHtml(line)}</p>`;
+    }
+
+    closeList();
+    if (inCode) html += '</code></pre>';
+
+    return html;
+  }
+
+  function renderExercise(markdown) {
+    const content = assistMode ? markdown : stripAssistSection(markdown);
+    tpPanelBody.innerHTML = renderMarkdown(content);
+  }
+
+  function loadExerciseForSlide(slide) {
+    const exercisePath = slide?.dataset.exercise || '';
+    if (!exercisePath) {
+      tpPanelBody.innerHTML = '<p class="tp-panel-empty">Aucun énoncé pour cette slide.</p>';
+      tpOpenLink.href = '#';
+      return;
+    }
+
+    currentExercisePath = exercisePath;
+    const exerciseUrl = new URL(exercisePath, window.location.href).toString();
+    tpOpenLink.href = exerciseUrl;
+
+    const cached = exerciseCache.get(exercisePath);
+    if (cached) {
+      renderExercise(cached);
+      return;
+    }
+
+    tpPanelBody.innerHTML = '<p class="tp-panel-empty">Chargement...</p>';
+    fetch(exerciseUrl)
+      .then(response => {
+        if (!response.ok) throw new Error('not found');
+        return response.text();
+      })
+      .then(text => {
+        exerciseCache.set(exercisePath, text);
+        renderExercise(text);
+      })
+      .catch(() => {
+        tpPanelBody.innerHTML = '<p class="tp-panel-empty">Énoncé introuvable.</p>';
+      });
+  }
+
+  function updateTpPanelAvailability() {
+    const currentSlide = filteredSlides[currentSlideIndex];
+    const exercisePath = currentSlide?.dataset.exercise;
+    const hasExercise = !!exercisePath;
+
+    tpBtn.disabled = !hasExercise;
+    assistBtn.disabled = !hasExercise;
+    assistBtn.classList.toggle('active', assistMode && hasExercise);
+
+    if (!hasExercise) {
+      setTpVisible(false);
+      return;
+    }
+
+    if (tpVisible && exercisePath !== currentExercisePath) {
+      loadExerciseForSlide(currentSlide);
+    }
+  }
+
+  // Toggle fullscreen
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      fullscreenBtn.classList.add('active');
+    } else {
+      document.exitFullscreen();
+      fullscreenBtn.classList.remove('active');
+    }
+  }
+
+  // Event listeners
+  dayBtns.forEach(btn => {
+    btn.addEventListener('click', () => filterSlidesByDay(parseInt(btn.dataset.day)));
+  });
+
+  prevBtn.addEventListener('click', prevSlide);
+  nextBtn.addEventListener('click', nextSlide);
+  fullscreenBtn.addEventListener('click', toggleFullscreen);
+  tpBtn.addEventListener('click', toggleTp);
+  assistBtn.addEventListener('click', toggleAssist);
+
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    slideMenu.classList.toggle('visible');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!slideMenu.contains(e.target) && e.target !== menuBtn) {
+      slideMenu.classList.remove('visible');
+    }
+  });
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    switch(e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+      case ' ':
+        e.preventDefault();
+        nextSlide();
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        e.preventDefault();
+        prevSlide();
+        break;
+      case 'f': case 'F': toggleFullscreen(); break;
+      case 't': case 'T': toggleTp(); break;
+      case 'a': case 'A': toggleAssist(); break;
+      case 'Escape': slideMenu.classList.remove('visible'); break;
+      case '1': filterSlidesByDay(1); break;
+      case '2': filterSlidesByDay(2); break;
+      case '3': filterSlidesByDay(3); break;
+    }
+  });
+
+  // Touch support
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  slidesWrapper.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+
+  slidesWrapper.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    const diff = touchStartX - touchEndX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) nextSlide();
+      else prevSlide();
+    }
+  }, { passive: true });
+
+  // Fullscreen change handler
+  document.addEventListener('fullscreenchange', () => {
+    fullscreenBtn.classList.toggle('active', !!document.fullscreenElement);
+  });
+
+  // Initialize
+  init();
+</script>
+</body>
+</html>

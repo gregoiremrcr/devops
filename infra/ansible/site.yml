@@ -1,0 +1,26 @@
+---
+- name: Configuration commune
+  hosts: all
+  become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Bootstrap Python for Ansible modules
+      raw: test -e /usr/bin/python3 || (apt-get update && apt-get install -y python3 python3-apt)
+      changed_when: false
+
+    - name: Gather facts
+      setup:
+  roles:
+    - base
+
+- name: Serveurs web
+  hosts: webservers
+  become: true
+  roles:
+    - nginx
+
+- name: Serveurs d'application
+  hosts: appservers
+  become: true
+  roles:
+    - app
